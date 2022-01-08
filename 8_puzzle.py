@@ -11,19 +11,21 @@ import math, copy
 
 
 class Node:
-    def __init__(self, value=None):
+    def __init__(self, value):
         self.value = value
         self.parent = None
+        self.child = []
 
 class Puzzle:
     queue = []
     
-    def __init__(self, board=None):
+    def __init__(self, board):
         self._hval = 0
         self._depth = 0
         self.board = board
 
-    def successor(self, current):
+    def successor(self):
+        current = self.board
         subNode = []
         if self.move_up(current) is not None:
             subNode.append(self.move_up(current))
@@ -33,35 +35,15 @@ class Puzzle:
             subNode.append(self.move_right(current))
         if self.move_left(current) is not None:
             subNode.append(self.move_left(current))
-            
         return subNode
-    
-    def solution(self,current):
-        succ = []
-        node = []
-        self.queue.pop(0)
-        if current is self.goalstate:
-            return "There is a solution"
-        succ = self.successor(current).copy()
-        for i in range(len(succ)):
-            node.append(Node(succ[i]))
-            if node[i].value not in self.queue:
-                self.queue.append(node[i].value)
-                self.solution(node[i].value)
-        return self.queue
-    def createTree(self):
-        if self.board is self.goalstate:
-            return
-        self.queue.append(self.board)
-        self.solution(self.board)
-        return self.queue
     
     def goalstate(self):
         self.goal = self.board.copy()
         self.goal.sort()
         return self.goal
     
-    def coordinate(self, value, current):
+    def coordinate(self, value):
+        current = self.board
         # arr[x,y]
         # [0, 0] = index is 0
         # [0, 1] = index is 1
@@ -79,16 +61,17 @@ class Puzzle:
             return
         if (arr[0] > (self.size_of_board()-1) or arr[1] > (self.size_of_board()-1)):
             return
-        return self.size_of_board() * arr[0] + arr[1] 
+        return int(self.size_of_board() * arr[0] + arr[1])
 
     def size_of_board(self):
-        return math.isqrt(len(self.board))
+        return math.sqrt(len(self.board))
 
 
     #actions
 
     def swapping_indexes(self, value, null_space, current):
-        # print(board)
+        #print(current)
+        #print(value)
         x = current.copy()
         temp = x[value]
         x[value] = x[null_space]
@@ -140,27 +123,51 @@ class Puzzle:
                 return
         return
 
-
-#creating boards
-board_1 = [1, 2, 3, 
+class Solution:
+    #creating boards
+    BOARD_1 = [1, 2, 3, 
         4, 8, 5, 
         0, 7, 6]
-board_2 = [8, 2, 6, 
+    BOARD_2 = [8, 2, 6, 
         4, 1, 5, 
         0, 7, 3]
-board_3 = [1, 2, 3, 4, 
+    BOARD_3 = [1, 2, 3, 4, 
         5, 6, 7, 8, 
         9, 10, 0, 15, 
         13, 12, 11, 14]
+    visited = []
+    def __init__(self):
+        self.root = Node(self.BOARD_1)
+    def Garbage_Solution(self):
+        self.visited.append(self.BOARD_1)
+        #print(Puzzle(self.BOARD_1).goalstate())
+        for n in Puzzle(self.BOARD_1).successor():
+            temp = Node(n)
+            if n not in self.visited:
+                self.root.child.append(n)
+            self._setChild(temp)
+        print(self.visited)
 
-puzzle1 = Puzzle(board_1)
+    def _setChild(self, current):
+        print(current.value)
+        if current.value is Puzzle(self.BOARD_1).goalstate():
+            return
+        if current.value in self.visited:
+            return
+        self.visited.append(current.value)
+        for i in Puzzle(current.value).successor():  
+            temp = Node(i)   
+            if current.value not in self.visited:
+                self.visited.append(i)
+                current.child.append(i)
+            self._setChild(temp)
+        #print(current.child)
+    
+    def h_manhattan(self):
+        for i in self.BOARD_1:
+            print(abs(Puzzle(self.BOARD_1).goalstate().index(i) - self.BOARD_1.index(i)))  
+                
 
-# print(puzzle1.successor(board_1))
-print(puzzle1.createTree())
-
-puzzle2 = Puzzle(board_2)
-
-# print(puzzle1.successor(board_2))
-
-puzzle3 = Puzzle(board_3)
+t = Solution()
+t.h_manhattan()
 
