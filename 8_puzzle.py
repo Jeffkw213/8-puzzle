@@ -7,13 +7,14 @@
 # [2,0] [2,1] [2,2] | 7 8 9
 
 import math, copy
+from pickle import TRUE
 
 
 
 class Node:
     def __init__(self, value):
         self.value = value
-        self.parent = None
+        self.hval= None
         self.child = []
 
 class Puzzle:
@@ -36,14 +37,13 @@ class Puzzle:
         if self.move_left(current) is not None:
             subNode.append(self.move_left(current))
         return subNode
-    
+
     def goalstate(self):
         self.goal = self.board.copy()
         self.goal.sort()
         return self.goal
     
-    def coordinate(self, value):
-        current = self.board
+    def coordinate(self, value, current):
         # arr[x,y]
         # [0, 0] = index is 0
         # [0, 1] = index is 1
@@ -66,6 +66,33 @@ class Puzzle:
     def size_of_board(self):
         return math.sqrt(len(self.board))
 
+    def h_manhattan(self): 
+        #find a legal move that makes it closer to the goal state
+        #get the hval of the item that was also being moved
+        #For example:
+        # [0,0] [0,1] [0,2] | 1 2 3
+        # [1,0] [1,1] [1,2] | 4 5 6
+        # [2,0] [2,1] [2,2] | 7 0 8
+        # move right:
+        # [0,0] [0,1] [0,2] | 1 2 3
+        # [1,0] [1,1] [1,2] | 4 5 6
+        # [2,0] [2,1] [2,2] | 0 7 8
+        # calculate the manhattan value for 7, the lower the value, the closer we are to the solution
+        # To find the value for a given tile, since we have it in a list ([1, 2, 3, 4, 5, 6, 7, 0, 8]) we find the distance from
+        # the current board and the goal state, (y-axis) + (x-axis)
+        # [0,0] [0,1] [0,2] | 1 2 3
+        # [1,0] [1,1] [1,2] | 4 5 6
+        # [2,0] [2,1] [2,2] | 0 7 8
+        # hval is |goal_y - curr_y| + |goal_x - curr_y| 
+        h_val = 0
+        current = self.board
+        goal = self.goalstate()
+        for i in current:
+        #    print("curr", i, self.coordinate(i, current))
+        #    print("goal", i, self.coordinate(i, goal))
+            h_val += abs(self.coordinate(i,goal)[0] - self.coordinate(i,current)[0]) + abs(self.coordinate(i,goal)[1] - abs(self.coordinate(i,current)[1]))
+        #print(h_val)
+        return h_val
 
     #actions
 
@@ -125,9 +152,10 @@ class Puzzle:
 
 class Solution:
     #creating boards
-    BOARD_1 = [1, 2, 3, 
-        4, 8, 5, 
-        0, 7, 6]
+    BOARD_0 =[0, 1, 2, 3, 4, 5, 6, 7, 8]
+    BOARD_1 = [1, 0, 2, 
+        3, 4, 5, 
+        6, 7, 8]
     BOARD_2 = [8, 2, 6, 
         4, 1, 5, 
         0, 7, 3]
@@ -136,12 +164,16 @@ class Solution:
         9, 10, 0, 15, 
         13, 12, 11, 14]
     visited = []
+    queue = []
     def __init__(self):
-        self.root = Node(self.BOARD_1)
+        self.root = Node(self.BOARD_2)
+
     def Garbage_Solution(self):
-        self.visited.append(self.BOARD_1)
+        # Brute force approach (DFS). Create a child node everytime there is a possible node. Continue until the
+        # the state is repeated or found the solution.
+        self.visited.append(self.root)
         #print(Puzzle(self.BOARD_1).goalstate())
-        for n in Puzzle(self.BOARD_1).successor():
+        for n in Puzzle(self.root).successor():
             temp = Node(n)
             if n not in self.visited:
                 self.root.child.append(n)
@@ -150,7 +182,7 @@ class Solution:
 
     def _setChild(self, current):
         print(current.value)
-        if current.value is Puzzle(self.BOARD_1).goalstate():
+        if current.value == Puzzle(self.root.value).goalstate():
             return
         if current.value in self.visited:
             return
@@ -163,11 +195,55 @@ class Solution:
             self._setChild(temp)
         #print(current.child)
     
-    def h_manhattan(self):
-        for i in self.BOARD_1:
-            print(abs(Puzzle(self.BOARD_1).goalstate().index(i) - self.BOARD_1.index(i)))  
-                
+    def BFS(self):
+        # Breadth First search solution
+        queue = []
+        current = self.root.value
+        queue.append(current)
+        while queue:
+            for i in Puzzle(queue.pop(0)).successor():
+                print(i)
+                if i == Puzzle(i).goalstate():
+                    return
+                if i not in self.visited:
+                    self.visited.append(i)
+                    queue.append(i)
+                    #print(i is Puzzle(i).goalstate())
+                    #print(self.visited)
 
+    def h_manhattan(self):
+        # find all the successor of the of the current
+        # choose the tree to go down
+        # Use the priority queue to remove the go down the smallest manhattan value
+        current = self.root
+        current.hval = Puzzle(current.value).h_manhattan()
+        print(current.hval)
+        self.visited.append(current.value)
+        self.queue.append(current)
+        while self.queue:
+            for i in Puzzle(self.delete()).successor():
+                print(i)
+                temp = Node(i)
+                temp.hval = Puzzle(i).h_manhattan()
+                if i == Puzzle(i).goalstate():
+                    return
+                if i not in self.visited:
+                    self.visited.append(i)
+                    self.queue.append(temp)
+
+    # delete function
+    # input: None
+    # Output: the Deleted queue
+    # Piority Queue, delete the smallest mannhattan at the given current state
+    # Find the smallest manhattan value and remove it from the queue.
+    def delete(self):
+        min = 0
+        for i in range(len(self.queue)):
+            if self.queue[i].hval < self.queue[min].hval:
+                min = i
+        item = self.queue[min].value
+        del self.queue[min]
+        return item
 t = Solution()
 t.h_manhattan()
 
